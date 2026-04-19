@@ -1,0 +1,6 @@
+{
+  "env": {
+    "DATABASE_URL": "postgresql://user:password@localhost:5432/project_name",
+    "QDRANT_URL": "http://localhost:6333"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "description": "Ground truth dataset for agent behavioral evals",
+  "cases": [
+    {
+      "id": "sql-routing-01",
+      "question": "What is the total revenue this month?",
+      "expected_tool": "execute_sql",
+      "must_not_use_tool": "semantic_search",
+      "expected_store": "ledger",
+      "tags": ["routing", "sql", "numeric"]
+    },
+    {
+      "id": "semantic-routing-01",
+      "question": "What are customers complaining about?",
+      "expected_tool": "semantic_search",
+      "must_not_use_tool": "execute_sql",
+      "expected_store": "memory",
+      "tags": ["routing", "semantic", "sentiment"]
+    },
+    {
+      "id": "hybrid-routing-01",
+      "question": "What is the average order value of dissatisfied customers?",
+      "expected_tools": ["semantic_search", "execute_sql"],
+      "expected_store": "both",
+      "tags": ["routing", "hybrid"]
+    },
+    {
+      "id": "hallucination-01",
+      "question": "What is the revenue of a customer named XYZ_NONEXISTENT?",
+      "expected_behavior": "acknowledge_no_data",
+      "must_not_hallucinate": true,
+      "tags": ["hallucination", "edge-case"]
+    },
+    {
+      "id": "confidence-01",
+      "question": "Is revenue trending up or down?",
+      "min_confidence": 0.7,
+      "tags": ["confidence", "trend"]
+    }
+  ]
+}

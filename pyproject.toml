@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "{{project_name}}"
+version = "0.1.0"
+description = "{{PROJECT_DESCRIPTION}}"
+requires-python = ">=3.11"
+
+# Core — always installed
+dependencies = [
+    "pydantic>=2.7,<3.0",
+    "pydantic-settings>=2.3,<3.0",
+    "anthropic>=0.40,<1.0",
+    "instructor>=1.4,<2.0",
+    "langchain>=0.3,<0.4",
+    "langchain-anthropic>=0.3,<0.4",
+    "langgraph>=0.2,<0.3",
+    "python-dotenv>=1.0,<2.0",
+]
+
+[project.optional-dependencies]
+# Added with --with-vector-db
+vector-db = [
+    "llama-index>=0.11,<0.12",
+    "llama-index-vector-stores-qdrant>=0.3,<0.4",
+    "llama-index-embeddings-fastembed>=0.2,<0.3",
+    "qdrant-client>=1.9,<2.0",
+    "sqlalchemy>=2.0,<3.0",
+    "psycopg2-binary>=2.9,<3.0",
+]
+
+# Dev tools — always in development
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-asyncio>=0.23,<0.24",
+    "pytest-cov>=5.0,<6.0",
+    "ruff>=0.4,<0.5",
+    "mypy>=1.10,<2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "evals"]
+asyncio_mode = "auto"
+addopts = "--tb=short -v"
+markers = [
+    "llm: requires real LLM API call (slow, costs tokens)",
+    "fast: uses mocks, safe for CI",
+    "slow: takes more than 5 seconds",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*", "evals/*"]
+
+[tool.coverage.report]
+fail_under = 80
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
