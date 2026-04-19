@@ -1,63 +1,390 @@
+<div align="center">
+
+<img src="./assets/logo.svg" width="80" height="80" alt="agentic-starter logo" />
+
 # agentic-starter
 
-> Open source Claude Code template focused on reducing hallucination
-> and optimizing token usage through guardrails, observability, and SDD.
+**The Claude Code template built for precision — not just structure.**
 
-## Quick Start
+</div>
+
+---
+
+Most AI templates give you folders and boilerplate. This one gives you a system that actively **fights hallucination**, tracks every agent decision, and enforces quality before any code ships.
+
+Two problems. Every design decision targets one of them.
+
+- **Hallucination** — the model answers without querying real data
+- **Token waste** — the model receives context it doesn't need
+
+---
+
+## How it works
+
+```
+Your question
+      │
+      ▼
+validated_invoke()           ← never call agent.invoke() directly
+      │
+      ▼
+AgentTracer (context)        ← starts recording steps, tools, latency
+      │
+      ▼
+agent.invoke()               ← LangChain ReAct loop
+      │
+      ├─ Thought → Action → Observation → (loop)
+      │
+      ▼
+Semantic validators          ← confidence low? no source cited? wrong tool?
+      │
+      ├─ Pass → return (QueryOutput, AgentTrace)
+      └─ Fail → retry with exponential backoff → GuardrailError after max retries
+```
+
+If the agent answers without querying a real data source, the guardrail catches it and retries automatically — up to 3 times with exponential backoff.
+
+---
+
+## Quickstart
+
+**Prerequisites:** Python 3.11+, [uv](https://docs.astral.sh/uv/), [Claude Code](https://claude.ai/code)
 
 ```bash
+# 1. Clone the template
 git clone https://github.com/Juniordell/agentic-starter my-project
 cd my-project
 
+# 2. Initialize your project
 python bootstrap.py --name "My Project" --author "Your Name"
-# or with vector DB:
+
+# 3. Verify everything works
+uv run pytest tests/ --tb=short
+
+# 4. Open Claude Code and start building
+claude
+/brainstorm
+```
+
+That's it. All tests should pass. `/brainstorm` starts Phase 1 of the SDD methodology.
+
+---
+
+## Optional modules
+
+The base template includes everything you need for a Python + Claude Code project. Additional modules are added via bootstrap flags:
+
+```bash
+# Add Qdrant (vector DB) + Postgres + dual-store agent + docker-compose
 python bootstrap.py --name "My Project" --author "Your Name" --with-vector-db
 ```
 
-## What makes this different
+| Flag                 | Status    | What it adds                                           |
+| -------------------- | --------- | ------------------------------------------------------ |
+| `--with-vector-db`   | ✅ Stable | Qdrant + Postgres + dual-store skills + docker-compose |
+| `--with-frontend`    | 🚧 v0.2   | Next.js + API route + TypeScript                       |
+| `--with-multi-agent` | 🚧 v0.2   | CrewAI + LangFuse observability                        |
 
-Most Claude Code templates are about structure. This one is about **precision**.
+> Bootstrap copies files from `.templates/` — it never deletes originals. Re-running is always safe.
 
-| Problem | Solution |
-|---------|----------|
-| Model hallucinates data | Guardrails reject answers without sources |
-| Model routes to wrong tool | Explicit docstring routing + ToolRoutingValidator |
-| Can't measure agent quality | AgentTracer records every step and tool call |
-| Tests don't cover agent intelligence | Evals test routing, hallucination, confidence |
-| Context gets bloated | Skills load on-demand, CLAUDE.md ≤ 100 lines |
-| Broken AI commits slip through | GitHub Actions CI blocks them |
+---
 
-## Optional Modules
+## What's included
 
-| Flag | Status | Adds |
-|------|--------|------|
-| `--with-vector-db` | ✅ Stable | Qdrant + Postgres + dual-store skills |
-| `--with-frontend` | 🚧 v0.2 | Next.js + API route |
-| `--with-multi-agent` | 🚧 v0.2 | CrewAI + LangFuse |
+### Core (always)
 
-## SDD — 5 Phases
+| Module                     | What it does                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| `CLAUDE.md`                | Agent context, rules, and architecture — kept under 100 lines                  |
+| `.claude/skills/`          | Domain knowledge loaded on demand. Doesn't consume context when irrelevant     |
+| `.claude/agents/`          | `codebase-explorer`, `test-writer`, `implementer` — each with isolated context |
+| `.claude/settings.json`    | Hooks: ruff runs after every edit, pytest runs when Claude finishes a task     |
+| `src/guardrails/`          | `ConfidenceValidator`, `SourceValidator`, `ToolRoutingValidator` + retry loop  |
+| `src/observability/`       | `AgentTracer`: tools called, steps, latency, hallucination flag per invocation |
+| `evals/`                   | Behavioral tests — verify routing decisions, not just code correctness         |
+| `spec/`                    | SDD 5-phase templates with clarity gates                                       |
+| `tasks/lessons.md`         | Claude updates this after every correction — self-improving across sessions    |
+| `.github/workflows/ci.yml` | Lint + types + tests + coverage gate — blocks broken commits                   |
+| `pyproject.toml`           | Major-version pinned deps, `uv`-compatible, dev/optional groups                |
+| `uv.lock`                  | Generated by bootstrap — reproducible installs across machines                 |
+
+### With `--with-vector-db`
+
+| Addition                   | What it does                                                    |
+| -------------------------- | --------------------------------------------------------------- |
+| `.claude/skills/qdrant/`   | RAG pipeline, embedding patterns, semantic search               |
+| `.claude/skills/postgres/` | SQL patterns, canonical queries, SQLAlchemy                     |
+| `src/.../tools.py`         | `execute_sql` + `semantic_search` tools with routing docstrings |
+| `src/.../agent.py`         | Dual-store ReAct agent wired to both Ledger and Memory          |
+| `tests/test_tools.py`      | Unit tests for tools with mocked DB and Qdrant                  |
+| `docker-compose.yml`       | Postgres 16 + Qdrant v1.13 with health checks                   |
+
+---
+
+## The methodology: SDD in 5 phases
+
+Every feature follows 5 phases. No phase can be skipped.
 
 ```
-/brainstorm → Phase 1: Discovery            (Opus)
-/define     → Phase 2: Requirements         (Opus)   Clarity Score ≥ 12/15
-/design     → Phase 3: Architecture         (Opus)
-/build      → Phase 4: TDD via subagents    (Sonnet)
-/ship       → Phase 5: Verify + archive     (Sonnet)
+/brainstorm   Discover the problem — mental model first              (Opus)
+/define       Requirements with Clarity Score ≥ 12/15               (Opus)
+/design       Architecture + file manifest — approved before code    (Opus)
+/build        TDD via isolated subagents — test-writer then implementer  (Sonnet)
+/ship         Verify + archive lessons in tasks/lessons.md           (Sonnet)
 ```
 
-## Running tests
+**Opus for thinking. Sonnet for building.** The right model for each phase.
+
+**Why two subagents for TDD?** Claude Code defaults to implementation-first. In a single context window, the implementation bleeds into the test logic. `test-writer` and `implementer` run in separate context windows — the test writer never sees implementation plans, the implementer never sees why the tests were written that way.
+
+**What is the Clarity Score?** A 5-dimension score (max 15) that measures spec quality: Problem, Users, Goals, Success criteria, and Scope. Below 12/15, the spec has too many gaps that the agent will fill with assumptions. Each assumption is a potential deviation from what you actually wanted.
+
+**What is `tasks/lessons.md`?** Every time you correct the agent, it appends a structured entry with the mistake, root cause, and rule to follow next time. Claude reads this file at the start of every session. The agent that opens your project tomorrow already knows what went wrong today.
+
+---
+
+## Guardrails — how hallucination is caught
+
+Three semantic validators run after every agent response:
+
+**`ConfidenceValidator`** — rejects responses where confidence is below 0.7. Low confidence correlates with higher hallucination rates.
+
+**`SourceValidator`** — rejects responses where the agent produced an answer without calling any tool. If no tool was called, the model answered from memory — which is hallucination by definition.
+
+**`ToolRoutingValidator`** — rejects responses where the agent used the wrong tool for the question type. A revenue question answered via semantic search produces a qualitative interpretation instead of an exact number.
+
+On failure, `validated_invoke()` retries with exponential backoff. After `max_retries` (default: 3), it raises `GuardrailError` with the reason.
+
+```python
+from src.your_project.guardrails.retry import validated_invoke
+
+output, trace = validated_invoke(
+    agent=agent,
+    question="What is total revenue this month?",
+)
+# output.answer      — validated response
+# trace.tools_called — ["execute_sql"]
+# trace.hallucinated — False
+```
+
+---
+
+## Observability — what the agent actually did
+
+Every invocation produces a structured trace:
+
+```python
+with AgentTracer(question=question) as tracer:
+    result = agent.invoke({"messages": [("user", question)]})
+    tracer.set_output(answer=result_text, confidence=0.95)
+
+trace = tracer.trace
+print(trace.tools_called)   # ["execute_sql"]
+print(trace.total_steps)    # 2
+print(trace.latency_ms)     # 1240.5
+print(trace.hallucinated)   # False
+```
+
+Hallucination is detected automatically: if the agent produced an answer but called no tools, `hallucinated` is set to `True` and logged as a warning.
+
+---
+
+## Evals — testing agent intelligence
+
+Unit tests verify code is correct. Evals verify the agent is intelligent.
 
 ```bash
-uv run pytest tests/ --tb=short          # unit tests
-uv run pytest evals/ -m fast             # fast behavioral evals (mocked)
-uv run pytest evals/ -m llm              # real LLM evals (costs tokens)
+uv run pytest tests/ --tb=short          # unit tests — always run in CI
+uv run pytest evals/ -m fast             # behavioral evals with mocks — CI-safe
+uv run pytest evals/ -m llm              # real LLM evals — run before release
 ```
 
+Two markers separate CI-safe tests from real API calls:
+
+- `@pytest.mark.fast` — mocked, zero cost, runs in CI
+- `@pytest.mark.llm` — calls real API, run locally before release
+
+Evals test routing decisions, hallucination resistance, and confidence thresholds — things unit tests cannot catch.
+
+---
+
+## Step-by-step: starting a new feature
+
+```bash
+# 1. Open Claude Code
+claude
+
+# 2. Explore current project state
+# Claude Code uses the codebase-explorer subagent automatically
+
+# 3. Start Phase 1
+/brainstorm
+
+# 4. Claude asks discovery questions and proposes approaches
+# → produces spec/01-brainstorm.md
+
+# 5. Move to Phase 2
+/define
+
+# 6. Claude extracts requirements and calculates Clarity Score
+# → produces spec/02-define.md (must score ≥ 12/15 to advance)
+
+# 7. Move to Phase 3
+/design
+
+# 8. Claude produces file manifest and architecture
+# → produces spec/03-design.md
+
+# 9. Move to Phase 4
+/build
+
+# 10. test-writer subagent writes failing tests
+#     implementer subagent makes them pass
+# → produces code + spec/04-build.md
+
+# 11. Move to Phase 5
+/ship
+
+# 12. Verify, update README, archive lessons
+# → produces spec/05-ship.md + updates tasks/lessons.md
+```
+
+---
+
+## Bootstrap flags reference
+
+```bash
+python bootstrap.py \
+  --name "My Project" \        # required — project display name
+  --author "Your Name" \       # required — fills __author__ in the package
+  --description "One liner" \  # optional — short project description
+  --with-vector-db \           # optional — adds Qdrant + Postgres module
+  --skip-git                   # optional — skip git init
+```
+
+What bootstrap does step by step:
+
+1. Copies optional module files from `.templates/` into the project
+2. Renames `src/project_name/` to `src/your_module_name/`
+3. Replaces all `{{PLACEHOLDER}}` values across every file
+4. Creates `.env` from `.env.example`
+5. Runs `uv sync --dev` and generates `uv.lock`
+6. Runs base tests to confirm everything works
+7. Creates the first git commit (includes `uv.lock`)
+
+---
+
+## Environment variables
+
+```bash
+# .env — copy from .env.example
+
+# Anthropic API key — only needed for direct API usage
+# Claude Code CLI and VS Code extension handle auth automatically
+ANTHROPIC_API_KEY=sk-ant-...   # optional for most users
+
+# App
+ENVIRONMENT=development
+LOG_LEVEL=INFO
+
+# Postgres — only with --with-vector-db
+POSTGRES_URL=postgresql://postgres:postgres@localhost:5432/your_project
+
+# Qdrant — only with --with-vector-db
+QDRANT_URL=http://localhost:6333
+QDRANT_COLLECTION=your_project_docs
+```
+
+---
+
+## GitHub Actions setup
+
+CI runs automatically on every push and pull request. It runs:
+
+- `ruff check` — lint
+- `mypy` — type checking
+- `pytest tests/ evals/ -m "not llm"` — unit + fast behavioral evals
+- Coverage gate at 80%
+
+To enable real LLM evals in CI (optional):
+
+1. Go to **Settings → Secrets → Actions**
+2. Add `ANTHROPIC_API_KEY`
+
+---
+
+## Project structure
+
+```
+my-project/
+├── assets/                    ← static assets (logo, etc.)
+├── .claude/
+│   ├── CLAUDE.md              ← project context (auto-filled by bootstrap)
+│   ├── settings.json          ← hooks: ruff on edit, pytest on stop
+│   ├── skills/                ← 9 skills loaded on demand
+│   └── agents/                ← 3 subagents with isolated context
+├── .github/workflows/ci.yml   ← CI pipeline
+├── .templates/                ← optional module sources (never deleted)
+├── spec/                      ← SDD phase docs (fill as you build)
+├── tasks/lessons.md           ← auto-updated self-improvement loop
+├── src/your_project/
+│   ├── models.py              ← Pydantic data contracts
+│   ├── config.py              ← centralized settings
+│   ├── observability/         ← AgentTracer
+│   └── guardrails/            ← validators + retry
+├── evals/
+│   ├── datasets/              ← ground truth behavioral dataset
+│   └── test_agent_behavior.py ← routing + hallucination tests
+├── tests/                     ← unit tests
+├── pyproject.toml
+├── uv.lock                    ← commit this
+└── bootstrap.py
+```
+
+---
+
 ## Requirements
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/)
-- [Claude Code](https://claude.ai/code)
-- Docker (with `--with-vector-db`)
+
+| Requirement                           | Version | Notes                                              |
+| ------------------------------------- | ------- | -------------------------------------------------- |
+| Python                                | 3.11+   | Required                                           |
+| [uv](https://docs.astral.sh/uv/)      | latest  | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| [Claude Code](https://claude.ai/code) | latest  | CLI or VS Code extension                           |
+| Docker                                | any     | Only with `--with-vector-db`                       |
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for how to add Skills, propose new flags, write validators, and add eval cases.
+
+---
+
+## Roadmap
+
+**v0.1 (current)**
+
+- Core template with guardrails, observability, evals, SDD
+- `--with-vector-db` (Qdrant + Postgres)
+- GitHub Actions CI
+
+**v0.2 (planned)**
+
+- `--with-frontend` (Next.js + API route + Vitest)
+- `--with-multi-agent` (CrewAI + LangFuse)
+- Planner-Executor-Critic agent pattern
+- Persistent execution state between sessions
+
+---
 
 ## License
-MIT
+
+MIT — use it, fork it, build on it.
+
+---
+
+<div align="center">
+
+Built by [Nelson Dell](https://linkedin.com/in/nelson-dell) · [github.com/Juniordell/agentic-starter](https://github.com/Juniordell/agentic-starter)
+
+</div>
