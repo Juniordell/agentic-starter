@@ -18,10 +18,8 @@ logger = logging.getLogger(__name__)
 
 def build_agent():
     settings = get_settings()
-    llm = ChatAnthropic(
-        model=settings.model_name,
-        anthropic_api_key=settings.anthropic_api_key,
-    )
+    llm = ChatAnthropic(model=settings.model_name)
+    # ChatAnthropic resolves auth automatically: ANTHROPIC_API_KEY env var or Claude Code CLI
     return create_react_agent(
         model=llm,
         tools=[execute_sql, semantic_search],
