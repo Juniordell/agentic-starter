@@ -31,6 +31,14 @@ vector-db = [
     "psycopg2-binary>=2.9,<3.0",
 ]
 
+# Added with --with-frontend
+frontend = [
+    "fastapi>=0.111,<0.112",
+    "uvicorn>=0.30,<0.31",
+    "sse-starlette>=2.1,<3.0",
+    "httpx>=0.27,<0.28",
+]
+
 # Dev tools — always in development
 dev = [
     "pytest>=8.0,<9.0",

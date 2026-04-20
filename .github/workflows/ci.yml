@@ -38,3 +38,8 @@ jobs:
 
       - name: Coverage gate
         run: uv run pytest --cov=src --cov-fail-under=80
+
+      - name: Frontend tests
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+        run: npm run test -- --run
+        working-directory: frontend
