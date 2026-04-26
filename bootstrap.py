@@ -241,7 +241,7 @@ Examples:
 
     # 6. Install Python dependencies + generate uv.lock
     print("\n🐍 Installing dependencies and generating uv.lock...")
-    sync_cmd = ["uv", "sync", "--dev"]
+    sync_cmd = ["uv", "sync"]
     if args.with_vector_db:
         sync_cmd += ["--extra", "vector-db"]
     if args.with_frontend:
