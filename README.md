@@ -279,10 +279,6 @@ What bootstrap does step by step:
 ```bash
 # .env: copy from .env.example
 
-# Anthropic API key: only needed for direct API usage
-# Claude Code CLI and VS Code extension handle auth automatically
-ANTHROPIC_API_KEY=sk-ant-...   # optional for most users
-
 # App
 ENVIRONMENT=development
 LOG_LEVEL=INFO
@@ -305,11 +301,6 @@ CI runs automatically on every push and pull request. It runs:
 - `mypy`: type checking
 - `pytest tests/ evals/ -m "not llm"`: unit + fast behavioral evals
 - Coverage gate at 80%
-
-To enable real LLM evals in CI (optional):
-
-1. Go to **Settings → Secrets → Actions**
-2. Add `ANTHROPIC_API_KEY`
 
 ---
 

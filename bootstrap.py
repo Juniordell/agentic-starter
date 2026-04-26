@@ -227,7 +227,7 @@ Examples:
     env_example = Path(".env.example")
     if env_example.exists() and not Path(".env").exists():
         Path(".env").write_text(env_example.read_text())
-        print("\n🔑 .env created (fill in ANTHROPIC_API_KEY)")
+        print("\n🔑 .env created")
 
     # 5. Create settings.local.json (vector-db only)
     if args.with_vector_db:
@@ -273,7 +273,7 @@ Examples:
         print("   ✓ First commit created (includes uv.lock)")
 
     # 10. Next steps
-    steps = ["1. Fill in .env with your ANTHROPIC_API_KEY"]
+    steps = ["1. Run claude to authenticate"]
     n = 2
     if args.with_vector_db:
         steps.append(f"{n}. docker compose up -d")
@@ -297,7 +297,7 @@ Examples:
 Next steps:
 {chr(10).join(f'  {s}' for s in steps)}
 
-GitHub Actions CI is configured — add ANTHROPIC_API_KEY to repo secrets.
+GitHub Actions CI is configured.
 Docs: github.com/Juniordell/agentic-starter
 """)
 
