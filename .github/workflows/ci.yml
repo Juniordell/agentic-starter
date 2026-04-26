@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -22,8 +22,9 @@ jobs:
       - name: Set up Python
         run: uv python install 3.11
 
-      - name: Install dependencies
-        run: uv sync --dev
+      # Bootstrap replaces placeholders, renames src/project_name/, and runs uv sync --dev
+      - name: Bootstrap test project
+        run: python bootstrap.py --name "Test Project" --author "CI Bot" --skip-git
 
       - name: Lint (ruff)
         run: uv run ruff check src/ tests/ evals/
@@ -32,12 +33,10 @@ jobs:
         run: uv run mypy src/ --ignore-missing-imports
 
       - name: Run tests
-        run: uv run pytest --tb=short -v --cov=src --cov-report=term-missing
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: uv run pytest tests/ evals/ -m "not llm" --tb=short -v --cov=src --cov-report=term-missing
 
       - name: Coverage gate
-        run: uv run pytest --cov=src --cov-fail-under=80
+        run: uv run pytest tests/ evals/ -m "not llm" --cov=src --cov-fail-under=80
 
       - name: Frontend tests
         if: ${{ hashFiles('frontend/package.json') != '' }}
