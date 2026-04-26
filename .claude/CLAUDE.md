@@ -18,6 +18,10 @@
 7. **Keep it simple** — smallest possible change; delete over add
 8. **Always use guardrails** — wrap agent calls with `validated_invoke()`
 9. **Always trace** — wrap agent calls with `AgentTracer` for observability
+10. **Conventional commits** — every commit must follow the format: `type(scope): description`
+    - Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `style`, `perf`
+    - One logical change per commit — never batch unrelated changes
+    - Examples: `feat(api): add POST /chat SSE endpoint`, `fix(guardrails): retry on empty answer`
 
 ## Self-Improvement Loop
 When corrected, immediately update `tasks/lessons.md` with a rule
