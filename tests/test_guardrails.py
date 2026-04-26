@@ -98,9 +98,12 @@ class TestToolRoutingValidator:
 
 class TestValidatedInvoke:
     def test_returns_output_and_trace_on_success(self, mock_valid_agent):
+        # SourceValidator requires real tool calls; tested separately in TestSourceValidator.
+        # Here we test that validated_invoke returns the correct types on success.
         output, trace = validated_invoke(
             agent=mock_valid_agent,
             question="What is revenue?",
+            validators=[ConfidenceValidator(min_confidence=0.7, question="What is revenue?")],
             max_retries=1,
         )
         assert output.answer == "Revenue is $127K"
