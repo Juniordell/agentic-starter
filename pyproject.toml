@@ -52,6 +52,7 @@ dev = [
 testpaths = ["tests", "evals"]
 asyncio_mode = "auto"
 addopts = "--tb=short -v"
+pythonpath = ["."]
 markers = [
     "llm: requires real LLM API call (slow, costs tokens)",
     "fast: uses mocks, safe for CI",
