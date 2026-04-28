@@ -51,15 +51,17 @@ def semantic_search(query: str) -> str:
     })
 
 
-def build_agent():
+def build_agent(callbacks: list | None = None):
     """
     Build and return the ReAct agent.
 
     Wire your tools here. LangGraph's create_react_agent handles the
     Think → Act → Observe loop automatically based on tool docstrings.
+
+    Pass callbacks=[TokenCounter()] to capture token usage for evals.
     """
     settings = get_settings()
-    llm = ChatAnthropic(model=settings.model_name)
+    llm = ChatAnthropic(model=settings.model_name, callbacks=callbacks or [])
     return create_react_agent(
         model=llm,
         tools=[execute_sql, semantic_search],
