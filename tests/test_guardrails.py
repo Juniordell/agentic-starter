@@ -2,14 +2,14 @@
 
 import pytest
 from unittest.mock import MagicMock
-from src.project_name.models import QueryOutput
-from src.project_name.observability.tracer import AgentTrace
-from src.project_name.guardrails.validators import (
+from src.test_project.models import QueryOutput
+from src.test_project.observability.tracer import AgentTrace
+from src.test_project.guardrails.validators import (
     ConfidenceValidator,
     SourceValidator,
     ToolRoutingValidator,
 )
-from src.project_name.guardrails.retry import GuardrailError, validated_invoke
+from src.test_project.guardrails.retry import GuardrailError, validated_invoke
 
 
 class TestConfidenceValidator:
@@ -98,22 +98,33 @@ class TestToolRoutingValidator:
 
 class TestValidatedInvoke:
     def test_returns_output_and_trace_on_success(self, mock_valid_agent):
-        # SourceValidator requires real tool calls; tested separately in TestSourceValidator.
-        # Here we test that validated_invoke returns the correct types on success.
         output, trace = validated_invoke(
             agent=mock_valid_agent,
             question="What is revenue?",
             validators=[ConfidenceValidator(min_confidence=0.7, question="What is revenue?")],
+            confidence_fn=lambda q, a: 0.9,
             max_retries=1,
         )
         assert output.answer == "Revenue is $127K"
         assert isinstance(trace, AgentTrace)
+
+    def test_confidence_fn_result_is_used(self, mock_valid_agent):
+        """confidence_fn return value must appear in the output — not hardcoded 0.9."""
+        output, trace = validated_invoke(
+            agent=mock_valid_agent,
+            question="What is revenue?",
+            validators=[ConfidenceValidator(min_confidence=0.7, question="What is revenue?")],
+            confidence_fn=lambda q, a: 0.82,
+            max_retries=1,
+        )
+        assert output.confidence == pytest.approx(0.82)
 
     def test_raises_guardrail_error_after_max_retries(self, mock_failing_agent):
         with pytest.raises(GuardrailError) as exc_info:
             validated_invoke(
                 agent=mock_failing_agent,
                 question="What is revenue?",
+                confidence_fn=lambda q, a: 0.9,
                 max_retries=2,
                 backoff_base=0.01,  # tiny backoff for fast tests
             )
