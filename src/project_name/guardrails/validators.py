@@ -64,9 +64,18 @@ class SourceValidator(SemanticValidator):
     """
     Rejects responses that claim to have data but cite no sources.
     A model that answers without sources likely hallucinated the data.
+
+    Set requires_data=False for conversational turns (greetings, clarifications)
+    that don't need to query any data source.
     """
 
+    def __init__(self, requires_data: bool = True, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.requires_data = requires_data
+
     def validate(self, output: QueryOutput, trace: AgentTrace) -> bool:
+        if not self.requires_data:
+            return True
         # If the agent called no tools, it answered from memory = hallucination risk
         if not trace.tools_called and output.answer:
             self.failure_reason = (
