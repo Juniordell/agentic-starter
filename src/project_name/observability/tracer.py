@@ -36,6 +36,8 @@ class AgentTrace:
     latency_ms: float = 0.0
     hallucinated: bool = False
     error: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
 
     def mark_hallucinated(self) -> None:
         """Flag this trace as hallucinated — answered without querying sources."""
@@ -58,6 +60,8 @@ class AgentTrace:
             "confidence": self.confidence,
             "hallucinated": self.hallucinated,
             "error": self.error,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
         }
 
 
