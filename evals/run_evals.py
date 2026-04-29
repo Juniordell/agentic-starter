@@ -36,13 +36,17 @@ DATASET_PATH = Path(__file__).parent / "datasets" / "agent_behavior.json"
 
 # ── Token counter callback ────────────────────────────────────────────────────
 
-class _TokenCounter:
+from langchain_core.callbacks import BaseCallbackHandler
+
+
+class _TokenCounter(BaseCallbackHandler):
     """
     LangChain callback that accumulates input/output tokens across LLM calls.
     Pass an instance to build_agent(callbacks=[counter]) then reset() per case.
     """
 
     def __init__(self) -> None:
+        super().__init__()
         self.input_tokens = 0
         self.output_tokens = 0
 
@@ -50,21 +54,10 @@ class _TokenCounter:
         self.input_tokens = 0
         self.output_tokens = 0
 
-    # LangChain callback interface
     def on_llm_end(self, response, **kwargs) -> None:
         usage = (getattr(response, "llm_output", None) or {}).get("usage", {})
         self.input_tokens += usage.get("input_tokens", 0)
         self.output_tokens += usage.get("output_tokens", 0)
-
-    # Required stubs so LangChain accepts this as a callback handler
-    def on_llm_start(self, *args, **kwargs) -> None: pass
-    def on_llm_error(self, *args, **kwargs) -> None: pass
-    def on_chain_start(self, *args, **kwargs) -> None: pass
-    def on_chain_end(self, *args, **kwargs) -> None: pass
-    def on_chain_error(self, *args, **kwargs) -> None: pass
-    def on_tool_start(self, *args, **kwargs) -> None: pass
-    def on_tool_end(self, *args, **kwargs) -> None: pass
-    def on_tool_error(self, *args, **kwargs) -> None: pass
 
 
 # ── Result model ──────────────────────────────────────────────────────────────
@@ -125,22 +118,30 @@ def _tracked_confidence(question: str, answer: str, model_name: str) -> tuple[fl
 
     Uses the raw Anthropic SDK so we get usage directly from the response.
     """
+    import re
     from anthropic import Anthropic
 
     client = Anthropic()
     response = client.messages.create(
         model=model_name,
-        max_tokens=32,
-        system='Rate confidence (0.0–1.0) that the answer is accurate and complete. Reply with JSON only: {"confidence": 0.85}',
+        max_tokens=64,
+        system=(
+            'You are a JSON API. Output ONLY a JSON object with a single field.\n'
+            'Rate how confident you are (0.0–1.0) that the answer correctly addresses the question.\n'
+            'Example output: {"confidence": 0.85}'
+        ),
         messages=[{"role": "user", "content": f"Question: {question}\nAnswer: {answer}"}],
     )
     text = response.content[0].text.strip()
+    # Strip markdown code fences if the model wraps the JSON
+    text = re.sub(r"```(?:json)?\s*|\s*```", "", text).strip()
     try:
         confidence = float(json.loads(text)["confidence"])
-        confidence = max(0.0, min(1.0, confidence))
     except (json.JSONDecodeError, KeyError, ValueError):
-        confidence = 0.5
-    return confidence, response.usage.input_tokens, response.usage.output_tokens
+        # Regex fallback for partial JSON or trailing text
+        m = re.search(r'"confidence"\s*:\s*([\d.]+)', text)
+        confidence = float(m.group(1)) if m else 0.5
+    return max(0.0, min(1.0, confidence)), response.usage.input_tokens, response.usage.output_tokens
 
 
 # ── Run modes ─────────────────────────────────────────────────────────────────
@@ -396,6 +397,8 @@ def _print_summary(
 
 def main() -> None:
     import logging
+    from dotenv import load_dotenv
+    load_dotenv()
     # Suppress tracer/guardrail logs so they don't pollute the report output
     logging.getLogger("src").setLevel(logging.ERROR)
 
