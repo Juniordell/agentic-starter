@@ -119,6 +119,16 @@ def validated_invoke(
                 messages = raw.get("messages", [])
                 answer = messages[-1].content if messages else ""
 
+                # Populate tracer with tool calls from LangGraph ToolMessages
+                for m in messages:
+                    if (hasattr(m, "name") and m.name
+                            and hasattr(m, "type") and m.type == "tool"):
+                        tracer.record_tool_call(
+                            tool_name=m.name,
+                            tool_input={},
+                            tool_output=getattr(m, "content", ""),
+                        )
+
                 confidence = confidence_fn(question, answer)
                 output = QueryOutput(
                     answer=answer,
